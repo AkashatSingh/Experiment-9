@@ -1,0 +1,153 @@
+// File: HibernateStudentCRUD.java
+package com.example.hibernate;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.query.Query;
+import org.hibernate.service.ServiceRegistry;
+
+import jakarta.persistence.*;
+import java.util.List;
+
+// --- ENTITY CLASS ---
+@Entity
+@Table(name = "student")
+class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+    private String email;
+    private String course;
+
+    public Student() {}
+
+    public Student(String name, String email, String course) {
+        this.name = name;
+        this.email = email;
+        this.course = course;
+    }
+
+    // Getters & Setters
+    public int getId() { return id; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getCourse() { return course; }
+
+    public void setId(int id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setEmail(String email) { this.email = email; }
+    public void setCourse(String course) { this.course = course; }
+
+    @Override
+    public String toString() {
+        return "Student [ID=" + id + ", Name=" + name + ", Email=" + email + ", Course=" + course + "]";
+    }
+}
+
+// --- MAIN CLASS ---
+public class HibernateStudentCRUD {
+
+    private static SessionFactory factory;
+
+    public static void main(String[] args) {
+        // Step 1: Setup Hibernate Configuration (Java-based)
+        Configuration cfg = new Configuration();
+        cfg.addAnnotatedClass(Student.class);
+
+        // Database connection settings
+        cfg.setProperty("hibernate.connection.driver_class", "com.mysql.cj.jdbc.Driver");
+        cfg.setProperty("hibernate.connection.url", "jdbc:mysql://localhost:3306/hibernate_demo");
+        cfg.setProperty("hibernate.connection.username", "root");
+        cfg.setProperty("hibernate.connection.password", "your_password_here");
+        cfg.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
+        cfg.setProperty("hibernate.hbm2ddl.auto", "update");
+        cfg.setProperty("hibernate.show_sql", "true");
+
+        // Build SessionFactory
+        ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
+                .applySettings(cfg.getProperties()).build();
+        factory = cfg.buildSessionFactory(serviceRegistry);
+
+        HibernateStudentCRUD app = new HibernateStudentCRUD();
+
+        // Perform CRUD operations
+        app.createStudents();
+        app.readStudents();
+        app.updateStudent(1, "Spring Boot");
+        app.deleteStudent(2);
+
+        // Close factory
+        factory.close();
+    }
+
+    // --- CREATE ---
+    public void createStudents() {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+
+        Student s1 = new Student("Rohan", "rohan@gmail.com", "Java");
+        Student s2 = new Student("Priya", "priya@gmail.com", "Python");
+
+        session.persist(s1);
+        session.persist(s2);
+
+        tx.commit();
+        session.close();
+
+        System.out.println("\n✅ Students added successfully!\n");
+    }
+
+    // --- READ ---
+    public void readStudents() {
+        Session session = factory.openSession();
+        List<Student> students = session.createQuery("from Student", Student.class).list();
+
+        System.out.println("📘 Student List:");
+        for (Student s : students) {
+            System.out.println(s);
+        }
+
+        session.close();
+    }
+
+    // --- UPDATE ---
+    public void updateStudent(int id, String newCourse) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+
+        Student s = session.get(Student.class, id);
+        if (s != null) {
+            s.setCourse(newCourse);
+            session.merge(s);
+            System.out.println("\n✅ Updated Student: " + s);
+        } else {
+            System.out.println("\n❌ Student not found for ID: " + id);
+        }
+
+        tx.commit();
+        session.close();
+    }
+
+    // --- DELETE ---
+    public void deleteStudent(int id) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+
+        Student s = session.get(Student.class, id);
+        if (s != null) {
+            session.remove(s);
+            System.out.println("\n🗑️ Deleted Student ID: " + id);
+        } else {
+            System.out.println("\n❌ Student not found for deletion, ID: " + id);
+        }
+
+        tx.commit();
+        session.close();
+    }
+}
